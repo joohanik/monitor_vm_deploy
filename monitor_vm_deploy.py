@@ -17,59 +17,57 @@ exit = Event()
 def main(argv):   
     clear = lambda: os.system('clear')
 
+    ###############################################################################################
+    # connect to "moodle" database
+    ###############################################################################################
+    hDatabase = MySQLdb.connect("192.168.11.243","moodle","core1234","moodle" )
+    cursor = hDatabase.cursor()
 
- 
-    while not exit.is_set():
-        ###############################################################################################
-        # connect to "moodle" database
-        ###############################################################################################
-        hDatabase = MySQLdb.connect("192.168.11.243","moodle","core1234","moodle" )
-        cursor = hDatabase.cursor()
+    ###############################################################################################
+    # Collect "mdl_user" table contents    
+    ###############################################################################################
+    cursor.execute("SELECT * FROM mdl_user")
+    results_mdl_user =  cursor.fetchall()
 
-        ###############################################################################################
-        # Collect "mdl_user" table contents    
-        ###############################################################################################
-        cursor.execute("SELECT * FROM mdl_user")
-        results_mdl_user =  cursor.fetchall()
+    dict_userid_username = dict()    
+    dict_userid_username = Func_userid_username_mapping(results_mdl_user)
 
-        dict_userid_username = dict()    
-        dict_userid_username = Func_userid_username_mapping(results_mdl_user)
-
-        ###############################################################################################
-        # Collect "vstp_vapp" table contents    
-        ###############################################################################################
-        cursor.execute("SELECT * FROM vstp_vapp")
-        results_vstp_vapp =  cursor.fetchall()
+    ###############################################################################################
+    # Collect "vstp_vapp" table contents    
+    ###############################################################################################
+    cursor.execute("SELECT * FROM vstp_vapp")
+    results_vstp_vapp =  cursor.fetchall()
 
 
-        ###############################################################################################
-        # Collect "vstp_blueprint" table contents
-        ###############################################################################################
-        cursor.execute("SELECT * FROM vstp_blueprint")
-        results_vstp_blueprint = cursor.fetchall()
+    ###############################################################################################
+    # Collect "vstp_blueprint" table contents
+    ###############################################################################################
+    cursor.execute("SELECT * FROM vstp_blueprint")
+    results_vstp_blueprint = cursor.fetchall()
 
 
-        dict_blueprintvmsetid_blueprintvmsetname = dict()
-        dict_blueprintvmsetid_blueprintvmsetname = Func_blueprintsetid_blueprintsetname_mapping(results_vstp_blueprint)
+    dict_blueprintvmsetid_blueprintvmsetname = dict()
+    dict_blueprintvmsetid_blueprintvmsetname = Func_blueprintsetid_blueprintsetname_mapping(results_vstp_blueprint)
 
 
-        ###############################################################################################
-        # Collect "vstp_vapp_vsystem" table contents.
-        # vstp_vapp_vsystem.req_cmd column describes the status of VM. Whether "복제 요청" or "-" or "??"
-        ###############################################################################################
-        cursor.execute("SELECT * FROM vstp_vapp_vsystem")
-        results_vstp_vapp_vsystem = cursor.fetchall()
-    
-        clear()
-        Func_banner()
-        Func_display_users_name_in_queue(dict_userid_username, results_vstp_vapp_vsystem, dict_blueprintvmsetid_blueprintvmsetname)
-        Func_display_users_name_deploy_complete(dict_userid_username, results_vstp_vapp_vsystem, dict_blueprintvmsetid_blueprintvmsetname)
-        Func_display_blueprint_name_count_deploy_complete(results_vstp_vapp, dict_blueprintvmsetid_blueprintvmsetname)
-        exit.wait(5)
-        hDatabase.close()
+    ###############################################################################################
+    # Collect "vstp_vapp_vsystem" table contents.
+    # vstp_vapp_vsystem.req_cmd column describes the status of VM. Whether "복제 요청" or "-" or "??"
+    ###############################################################################################
+    cursor.execute("SELECT * FROM vstp_vapp_vsystem")
+    results_vstp_vapp_vsystem = cursor.fetchall()
 
 
 
+while not exit.is_set():    
+    clear()
+    Func_banner()
+    Func_display_users_name_in_queue(dict_userid_username, results_vstp_vapp_vsystem, dict_blueprintvmsetid_blueprintvmsetname)
+    Func_display_users_name_deploy_complete(dict_userid_username, results_vstp_vapp_vsystem, dict_blueprintvmsetid_blueprintvmsetname)
+    Func_display_blueprint_name_count_deploy_complete(results_vstp_vapp, dict_blueprintvmsetid_blueprintvmsetname)
+    exit.wait(5)
+
+hDatabase.close()
 
 
 
