@@ -12,9 +12,9 @@ This tool is the real-time database monitor that deployment status in CCR(Core C
 
 	Usage : monitor_vm_deploy.py [OPTIONS] [FILE or DIRECTORY]
 	-d,  --deplyed
-	print deployed blueprints statistics
+		print deployed blueprints statistics
 	-u,  --username USERNAME
-	print deployed blueprints who specified users
+		print deployed blueprints who specified users
 	[root@localhost lab]# 
 
 
