@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*- 
 
-# Copyright (C) 2019 Korean Army Signal School
+# Copyright (C) 2019 Coresecurity
 # Author : Han Ik Joo (hijoo@coresec.co.kr)
 
 import sys
+import getopt
 import MySQLdb         
 from datetime import datetime
 from array import *
@@ -14,61 +15,131 @@ import os
 exit = Event()
 
 
-def main(argv):   
-    clear = lambda: os.system('clear')
+def main(argv):
 
+    try:   
+        # http://www.faqs.org/docs/diveintopython/kgp_commandline.html
+        opts, args = getopt.getopt(argv, "du:", ["deployed", "username="])      
+        if len(argv) < 1:
+            Func_usage() 
+        else:
+            clear = lambda: os.system('clear')
+
+            for opt, arg in opts:
+                if opt in ("-d", "--deployed"):
+                    try:
+                        while not exit.is_set():
+                            cursor, hDatabase = Func_connect_database()
+                            results_mdl_user = Func_collect_mdl_users_table_contents(cursor)
+                            results_vstp_vapp = Func_collect_vstp_vapp_table_contents(cursor)
+                            results_vstp_blueprint = Func_collect_vstp_blueprint_table_contents(cursor)
+                            results_vstp_vapp_vsystem = Func_collect_vstp_vapp_vsystem_table_contents(cursor)
+                            Func_close_database(hDatabase)
+
+
+                            dict_userid_username = dict()    
+                            dict_userid_username = Func_userid_username_mapping(results_mdl_user)
+
+                            dict_blueprintvmsetid_blueprintvmsetname = dict()
+                            dict_blueprintvmsetid_blueprintvmsetname = Func_blueprintsetid_blueprintsetname_mapping(results_vstp_blueprint)
+
+                            clear()
+                            Func_banner()
+                            Func_display_users_name_in_queue(dict_userid_username, results_vstp_vapp_vsystem, dict_blueprintvmsetid_blueprintvmsetname)
+                            Func_display_blueprint_name_count_deploy_complete(results_vstp_vapp, dict_blueprintvmsetid_blueprintvmsetname)
+                            exit.wait(5)
+                    except:
+                        print 'Error occurred.'                
+
+                elif opt in ("-u", "--username"):             
+                    try:                             
+                        while not exit.is_set():
+                            cursor, hDatabase = Func_connect_database()
+                            results_mdl_user = Func_collect_mdl_users_table_contents(cursor)
+                            results_vstp_vapp = Func_collect_vstp_vapp_table_contents(cursor)
+                            results_vstp_blueprint = Func_collect_vstp_blueprint_table_contents(cursor)
+                            results_vstp_vapp_vsystem = Func_collect_vstp_vapp_vsystem_table_contents(cursor)
+                            Func_close_database(hDatabase)
+
+
+                            dict_userid_username = dict()    
+                            dict_userid_username = Func_userid_username_mapping(results_mdl_user)
+
+                            dict_blueprintvmsetid_blueprintvmsetname = dict()
+                            dict_blueprintvmsetid_blueprintvmsetname = Func_blueprintsetid_blueprintsetname_mapping(results_vstp_blueprint)
+
+                            clear()
+                            Func_banner()
+                            Func_display_users_name_in_queue(dict_userid_username, results_vstp_vapp_vsystem, dict_blueprintvmsetid_blueprintvmsetname)
+                            Func_display_users_name_deploy_complete(dict_userid_username, results_vstp_vapp_vsystem, dict_blueprintvmsetid_blueprintvmsetname, arg)
+                            exit.wait(5)
+                    except:
+                        print 'Error occurred.' 
+
+    except getopt.GetoptError:
+        Func_usage()
+
+
+def Func_close_database(hDatabase):
+        hDatabase.close()
+
+
+def Func_connect_database():
     ###############################################################################################
     # connect to "moodle" database
     ###############################################################################################
     hDatabase = MySQLdb.connect("192.168.11.243","moodle","core1234","moodle" )
     cursor = hDatabase.cursor()
+    return cursor, hDatabase
 
+
+def Func_collect_mdl_users_table_contents(cursor):
     ###############################################################################################
     # Collect "mdl_user" table contents    
     ###############################################################################################
     cursor.execute("SELECT * FROM mdl_user")
-    results_mdl_user =  cursor.fetchall()
+    results_mdl_user =  cursor.fetchall()    
+    return results_mdl_user
 
-    dict_userid_username = dict()    
-    dict_userid_username = Func_userid_username_mapping(results_mdl_user)
-
+def Func_collect_vstp_vapp_table_contents(cursor):
     ###############################################################################################
     # Collect "vstp_vapp" table contents    
     ###############################################################################################
     cursor.execute("SELECT * FROM vstp_vapp")
     results_vstp_vapp =  cursor.fetchall()
+    return results_vstp_vapp
 
-
+def Func_collect_vstp_blueprint_table_contents(cursor):
     ###############################################################################################
     # Collect "vstp_blueprint" table contents
     ###############################################################################################
     cursor.execute("SELECT * FROM vstp_blueprint")
     results_vstp_blueprint = cursor.fetchall()
+    return results_vstp_blueprint
 
-
-    dict_blueprintvmsetid_blueprintvmsetname = dict()
-    dict_blueprintvmsetid_blueprintvmsetname = Func_blueprintsetid_blueprintsetname_mapping(results_vstp_blueprint)
-
-
+def Func_collect_vstp_vapp_vsystem_table_contents(cursor):
     ###############################################################################################
     # Collect "vstp_vapp_vsystem" table contents.
     # vstp_vapp_vsystem.req_cmd column describes the status of VM. Whether "복제 요청" or "-" or "??"
     ###############################################################################################
     cursor.execute("SELECT * FROM vstp_vapp_vsystem")
     results_vstp_vapp_vsystem = cursor.fetchall()
+    return results_vstp_vapp_vsystem
 
 
 
-while not exit.is_set():    
-    clear()
+
+def Func_help():
+    print "Usage : " + sys.argv[0] + " [OPTIONS] [FILE or DIRECTORY]"
+    print "  -d,  --deplyed\n\tprint deployed blueprints statistics"
+    print "  -u,  --username USERNAME\n\tprint deployed blueprints who specified users"
+    
+
+
+
+def Func_usage():
     Func_banner()
-    Func_display_users_name_in_queue(dict_userid_username, results_vstp_vapp_vsystem, dict_blueprintvmsetid_blueprintvmsetname)
-    Func_display_users_name_deploy_complete(dict_userid_username, results_vstp_vapp_vsystem, dict_blueprintvmsetid_blueprintvmsetname)
-    Func_display_blueprint_name_count_deploy_complete(results_vstp_vapp, dict_blueprintvmsetid_blueprintvmsetname)
-    exit.wait(5)
-
-hDatabase.close()
-
+    Func_help()
 
 
 def Func_userid_username_mapping(results_mdl_user):
@@ -108,7 +179,8 @@ def Func_display_users_name_in_queue(dict_userid_username, results_vstp_vapp_vsy
                                                                                     datetime.now().minute, 
                                                                                     datetime.now().second)
 
-def Func_display_users_name_deploy_complete(dict_userid_username, results_vstp_vapp_vsystem, dict_blueprintvmsetid_blueprintvmsetname):
+
+def Func_display_users_name_deploy_complete(dict_userid_username, results_vstp_vapp_vsystem, dict_blueprintvmsetid_blueprintvmsetname, arg):
     ###############################################################################################
     # 배포된 가상머신이 속한 가상머신 세트 이름과 배포된 사용자 이름을 추출함 
     # vstp_vapp_vsystem.req_cmd의 값이 배포 대기중('-')과 배포 진행중('복제 요청')이 아닌 복제 왼료된 레코드만 추출
@@ -140,12 +212,12 @@ def Func_display_users_name_deploy_complete(dict_userid_username, results_vstp_v
                                                                                             datetime.now().minute, 
                                                                                             datetime.now().second)
         for i in range(len(userlist)):
-            print CGRE + "사용자 계정 : " + CRED + "\'%s\'" % userlist[i] + CEND
-            for blueprintvmsetname, username in list_blueprintvmset_user_name:
-                if(username == userlist[i]):
-                    print CGRE + "[*] \'%s\'" % blueprintvmsetname + CEND
-            print "세트들을 배포 받았습니다.\n"
-
+            if userlist[i] == arg:
+                print CGRE + "사용자 계정 : " + CRED + "\'%s\'" % userlist[i] + CEND
+                for blueprintvmsetname, username in list_blueprintvmset_user_name:
+                    if(username == userlist[i]):
+                        print CGRE + "[*] \'%s\'" % blueprintvmsetname + CEND
+                print "세트들을 배포 받았습니다.\n"
     else:
             print "\n\n[%s-%s-%s %s:%s:%s] [INFO] 배포된 가상자원 세트가 없습니다." % (datetime.now().year, 
                                                                                 datetime.now().month, 
@@ -153,11 +225,6 @@ def Func_display_users_name_deploy_complete(dict_userid_username, results_vstp_v
                                                                                 datetime.now().hour, 
                                                                                 datetime.now().minute, 
                                                                                 datetime.now().second)
-
-
-
-
-
 
 
 def Func_display_blueprint_name_count_deploy_complete(results_vstp_vapp, dict_blueprintvmsetid_blueprintvmsetname):
@@ -203,7 +270,7 @@ def Func_banner():
     CRED = "\033[91m"
     print CYEL + "[+] VM deployment monitoring tool v0.1 Beta" + CEND
     print CYEL + "[+] Contact to hijoo@coresec.co.kr" + CEND
-    print CYEL + "[+] Copyright (C) 2019 Korean Army Signal School\n\n" + CEND
+    print CYEL + "[+] Copyright (C) 2019 Coresecurity\n\n" + CEND
 
 
 def quit(signo, _frame):
